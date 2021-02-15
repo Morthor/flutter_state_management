@@ -40,30 +40,16 @@ class _HomeState extends State<Home> {
       ),
       floatingActionButton: FloatingActionButton(
         child: Icon(Icons.add),
-        onPressed: navigateToNewItemView,
+        onPressed: goToNewItemView,
       ),
       body: items.isNotEmpty ? ListView.builder(
         itemCount: items.length,
         itemBuilder: (context, index){
-          return Dismissible(
-            key: Key(items[index].hashCode.toString()),
-            direction: DismissDirection.startToEnd,
-            background: Container(
-              padding: EdgeInsets.only(left: 12),
-              color: Colors.red,
-              child: Icon(Icons.delete, color: Colors.white,),
-              alignment: Alignment.centerLeft,
-            ),
-            onDismissed: (direction) => removeItem(items[index]),
-            child: ListTile(
-              title: Text(items[index].description),
-              trailing: Icon(items[index].complete
-                  ? Icons.check_box
-                  : Icons.check_box_outline_blank
-              ),
-              onTap: () => chanceCompleteness(items[index]),
-              onLongPress: () => navigateToEditItemView(items[index]),
-            ),
+          return TodoItem(
+            item: items[index],
+            onTap: changeCompleteness,
+            onLongPress: goToEditItemView,
+            onDismissed: removeItem,
           );
         },
       ) : Center(child: Text('No items'),),
@@ -72,7 +58,7 @@ class _HomeState extends State<Home> {
 
   // Navigation
 
-  void navigateToNewItemView(){
+  void goToNewItemView(){
     Navigator.of(context).push(MaterialPageRoute(
         builder: (context) {
           return ItemView();
@@ -82,7 +68,7 @@ class _HomeState extends State<Home> {
     });
   }
 
-  void navigateToEditItemView(Todo item){
+  void goToEditItemView(Todo item){
     Navigator.of(context).push(MaterialPageRoute(
         builder: (context) {
           return ItemView(item: item);
@@ -116,9 +102,51 @@ class _HomeState extends State<Home> {
     }
   }
 
-  void chanceCompleteness(Todo item){
+  void changeCompleteness(Todo item){
     setState(() {
       item.complete = !item.complete;
     });
+  }
+}
+
+class TodoItem extends StatelessWidget {
+  final Todo item;
+  final Function(Todo) onTap;
+  final Function(Todo) onLongPress;
+  final Function(Todo) onDismissed;
+
+  TodoItem({
+    @required this.item,
+    @required this.onTap,
+    @required this.onDismissed,
+    @required this.onLongPress
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dismissible(
+      key: Key(item.hashCode.toString()),
+      direction: DismissDirection.startToEnd,
+      background: Container(
+        padding: EdgeInsets.only(left: 12),
+        color: Colors.red,
+        child: Icon(Icons.delete, color: Colors.white,),
+        alignment: Alignment.centerLeft,
+      ),
+      onDismissed: (direction) => onDismissed(item),
+      child: ListTile(
+        title: Text(item.description,
+          style: TextStyle(decoration: item.complete
+              ? TextDecoration.lineThrough
+              : null),
+        ),
+        trailing: Icon(item.complete
+            ? Icons.check_box
+            : Icons.check_box_outline_blank
+        ),
+        onTap: () => onTap(item),
+        onLongPress: () => onLongPress(item),
+      ),
+    );
   }
 }
