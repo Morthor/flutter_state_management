@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_state_management/todo_list_model.dart';
 import 'package:flutter_state_management/todo_model.dart';
+import 'package:scoped_model/scoped_model.dart';
 
 class ItemView extends StatefulWidget {
   final Todo item;
@@ -22,9 +24,10 @@ class _ItemViewState extends State<ItemView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ScopedModelDescendant<TodoListModel>(
+      builder: (context, child, model) => Scaffold(
         appBar: AppBar(
-          title: Text('New task'),
+          title: Text(widget.item != null ? 'Edit task' : 'New task'),
         ),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -33,22 +36,31 @@ class _ItemViewState extends State<ItemView> {
             children: [
               TextFormField(
                 controller: _textEditingController,
-                onFieldSubmitted: (value) => submit(),
+                onFieldSubmitted: (value) => submit(context),
                 textCapitalization: TextCapitalization.sentences,
                 autofocus: true,
               ),
               SizedBox(height: 10),
               RaisedButton(
                 child: Text('Submit'),
-                onPressed: submit,
+                onPressed: () => submit(context),
               )
             ],
           ),
-        )
+        ),
+      ),
     );
   }
 
-  void submit(){
-    Navigator.pop(context, _textEditingController.text);
+  void submit(BuildContext context){
+    String description = _textEditingController.text;
+    if(description != null && description.isNotEmpty){
+      if(widget.item != null){
+        TodoListModel.of(context).editTask(widget.item, description);
+      } else {
+        TodoListModel.of(context).addNewTask(description);
+      }
+      Navigator.pop(context, description);
+    }
   }
 }

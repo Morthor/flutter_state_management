@@ -1,7 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_state_management/item_view.dart';
+import 'package:flutter_state_management/todo_list_model.dart';
 import 'package:flutter_state_management/todo_model.dart';
+import 'package:scoped_model/scoped_model.dart';
 
 void main() {
   runApp(MyApp());
@@ -10,15 +12,18 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        primarySwatch: Colors.teal,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
+    return ScopedModel<TodoListModel>(
+      model: TodoListModel(),
+      child: MaterialApp(
+        title: 'Flutter Demo',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          primarySwatch: Colors.teal,
+          visualDensity: VisualDensity.adaptivePlatformDensity,
+        ),
+        home: Home(),
       ),
-      home: Home(),
     );
   }
 }
@@ -29,8 +34,6 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  List<Todo> items = List<Todo>.empty(growable: true);
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,21 +41,30 @@ class _HomeState extends State<Home> {
         title: Text('Todo App'),
         centerTitle: true,
       ),
-      floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.add),
-        onPressed: goToNewItemView,
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            child: Icon(Icons.add),
+            onPressed: goToNewItemView,
+          ),
+        ],
       ),
-      body: items.isNotEmpty ? ListView.builder(
-        itemCount: items.length,
-        itemBuilder: (context, index){
-          return TodoItem(
-            item: items[index],
-            onTap: changeCompleteness,
-            onLongPress: goToEditItemView,
-            onDismissed: removeItem,
-          );
-        },
-      ) : Center(child: Text('No items'),),
+      body: ScopedModelDescendant<TodoListModel>(
+        builder: (context, child, model) {
+          return model.items.isNotEmpty ? ListView.builder(
+            itemCount: model.items.length,
+            itemBuilder: (context, index) {
+              return TodoItem(
+                item: model.items[index],
+                onTap: model.changeCompleteness,
+                onLongPress: goToEditItemView,
+                onDismissed: model.removeItem,
+              );
+            },
+          ) : Center(child: Text('No items'),);
+        }
+      ),
     );
   }
 
@@ -60,52 +72,18 @@ class _HomeState extends State<Home> {
 
   void goToNewItemView(){
     Navigator.of(context).push(MaterialPageRoute(
-        builder: (context) {
-          return ItemView();
-        }
-    )).then((value) {
-      addNewTask(value);
-    });
+      builder: (context) {
+        return ItemView();
+      }
+    ));
   }
 
   void goToEditItemView(Todo item){
     Navigator.of(context).push(MaterialPageRoute(
-        builder: (context) {
-          return ItemView(item: item);
-        }
-    )).then((value) {
-      editTask(item, value);
-    });
-  }
-
-  // Operations
-
-  void editTask(Todo item, String description){
-    if(description != null && description != ''){
-      setState(() {
-        item.description = description;
-      });
-    }
-  }
-
-  void removeItem(Todo item){
-    setState(() {
-      items.remove(item);
-    });
-  }
-
-  void addNewTask(String description){
-    if(description != null && description != ''){
-      setState(() {
-        items.add(Todo(description));
-      });
-    }
-  }
-
-  void changeCompleteness(Todo item){
-    setState(() {
-      item.complete = !item.complete;
-    });
+      builder: (context) {
+        return ItemView(item: item);
+      }
+    ));
   }
 }
 
