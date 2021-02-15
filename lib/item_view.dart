@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_state_management/item_list_provider.dart';
 import 'package:flutter_state_management/todo_model.dart';
+import 'package:provider/provider.dart';
 
 class ItemView extends StatefulWidget {
   final Todo item;
@@ -49,6 +51,14 @@ class _ItemViewState extends State<ItemView> {
   }
 
   void submit(){
-    Navigator.pop(context, _textEditingController.text);
+    String description = _textEditingController.text;
+    if(description != null && description.isNotEmpty){
+      if(widget.item != null){
+        context.read<StateProvider>().editTask(widget.item, description);
+      } else {
+        context.read<StateProvider>().addNewTask(description);
+      }
+      Navigator.pop(context, _textEditingController.text);
+    }
   }
 }
