@@ -47,9 +47,9 @@ class _HomeState extends State<Home> {
         itemBuilder: (context, index){
           return TodoItem(
             item: items[index],
-            onTap: changeCompleteness,
+            onTap: updateTodoCompleteness,
             onLongPress: goToEditItemView,
-            onDismissed: removeItem,
+            onDismissed: removeTodo,
           );
         },
       ) : Center(child: Text('No items'),),
@@ -64,7 +64,7 @@ class _HomeState extends State<Home> {
           return ItemView();
         }
     )).then((value) {
-      addNewTask(value);
+      addNewTodo(value);
     });
   }
 
@@ -74,38 +74,58 @@ class _HomeState extends State<Home> {
           return ItemView(item: item);
         }
     )).then((value) {
-      editTask(item, value);
+      updateTodoDescription(item, value);
+    });
+  }
+
+  // Actions
+
+  void updateTodoDescription(Todo item, String description){
+    setState(() {
+      updateItemDescription(item, description);
+    });
+  }
+
+  void removeTodo(Todo item){
+    setState(() {
+      removeItem(item);
+    });
+  }
+
+  void addNewTodo(String description){
+    if(description != null && description != ''){
+      setState(() {
+        addNewItem(description);
+      });
+    }
+  }
+
+  void updateTodoCompleteness(Todo item){
+    setState(() {
+      updateItemCompleteness(item);
     });
   }
 
   // Operations
 
-  void editTask(Todo item, String description){
+  void updateItemDescription(Todo item, String description){
     if(description != null && description != ''){
-      setState(() {
-        item.description = description;
-      });
+      item.description = description;
     }
   }
 
   void removeItem(Todo item){
-    setState(() {
-      items.remove(item);
-    });
+    items.remove(item);
   }
 
-  void addNewTask(String description){
+  void addNewItem(String description){
     if(description != null && description != ''){
-      setState(() {
-        items.add(Todo(description));
-      });
+      items.add(Todo(description));
     }
   }
 
-  void changeCompleteness(Todo item){
-    setState(() {
-      item.complete = !item.complete;
-    });
+  void updateItemCompleteness(Todo item){
+    item.complete = !item.complete;
   }
 }
 
