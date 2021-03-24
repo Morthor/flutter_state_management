@@ -1,11 +1,69 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_state_management/item_view.dart';
 import 'package:flutter_state_management/todo_model.dart';
 
+
 void main() {
-  runApp(MyApp());
+  runApp(
+    ProviderScope(
+      child: MyApp(),
+    )
+  );
 }
+
+class TodoList extends ChangeNotifier {
+  List<Todo> _items = List<Todo>.empty(growable: true);
+  List<Todo> get items => _items;
+
+  // Actions
+
+  void updateTodoDescription(Todo item, String description) {
+    updateItemDescription(item, description);
+    notifyListeners();
+  }
+
+  void removeTodo(Todo item) {
+    removeItem(item);
+    notifyListeners();
+  }
+
+  void addNewTodo(String description) {
+    if (description != null && description != '') {
+      addNewItem(description);
+      notifyListeners();
+    }
+  }
+
+  void updateTodoCompleteness(Todo item) {
+    updateItemCompleteness(item);
+    notifyListeners();
+  }
+
+  // Operations
+
+  void updateItemDescription(Todo item, String description) {
+    if (description != null && description != '') {
+      item.description = description;
+    }
+  }
+
+  void removeItem(Todo item) {
+    items.remove(item);
+  }
+
+  void addNewItem(String description) {
+    if (description != null && description != '') {
+      items.add(Todo(description));
+    }
+  }
+
+  void updateItemCompleteness(Todo item) {
+    item.complete = !item.complete;
+  }
+}
+
+final todoListProvider = ChangeNotifierProvider((ref) => TodoList());
 
 class MyApp extends StatelessWidget {
   @override
@@ -42,92 +100,70 @@ class _HomeState extends State<Home> {
         child: Icon(Icons.add),
         onPressed: goToNewItemView,
       ),
-      body: items.isNotEmpty ? ListView.builder(
-        itemCount: items.length,
-        itemBuilder: (context, index){
-          return TodoItem(
-            item: items[index],
-            onTap: updateTodoCompleteness,
-            onLongPress: goToEditItemView,
-            onDismissed: removeTodo,
-          );
-        },
-      ) : Center(child: Text('No items'),),
+      body: Consumer(builder: (context, watch, _){
+        final items = watch(todoListProvider).items;
+        return ItemListView(
+          items: items,
+          goToEditItemView: goToEditItemView,
+        );
+      },),
     );
   }
 
   // Navigation
 
-  void goToNewItemView(){
-    Navigator.of(context).push(MaterialPageRoute(
-        builder: (context) {
-          return ItemView();
-        }
-    )).then((value) {
-      addNewTodo(value);
+  void goToNewItemView() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+      return ItemView();
+    })).then((value) {
+      context.read(todoListProvider).addNewTodo(value);
     });
   }
 
-  void goToEditItemView(Todo item){
-    Navigator.of(context).push(MaterialPageRoute(
-        builder: (context) {
-          return ItemView(item: item);
-        }
-    )).then((value) {
-      updateTodoDescription(item, value);
+  void goToEditItemView(Todo item) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+      return ItemView(item: item);
+    })).then((value) {
+      context.read(todoListProvider).updateTodoDescription(item, value);
     });
-  }
-
-  // Actions
-
-  void updateTodoDescription(Todo item, String description){
-    setState(() {
-      updateItemDescription(item, description);
-    });
-  }
-
-  void removeTodo(Todo item){
-    setState(() {
-      removeItem(item);
-    });
-  }
-
-  void addNewTodo(String description){
-    if(description != null && description != ''){
-      setState(() {
-        addNewItem(description);
-      });
-    }
-  }
-
-  void updateTodoCompleteness(Todo item){
-    setState(() {
-      updateItemCompleteness(item);
-    });
-  }
-
-  // Operations
-
-  void updateItemDescription(Todo item, String description){
-    if(description != null && description != ''){
-      item.description = description;
-    }
-  }
-
-  void removeItem(Todo item){
-    items.remove(item);
-  }
-
-  void addNewItem(String description){
-    if(description != null && description != ''){
-      items.add(Todo(description));
-    }
-  }
-
-  void updateItemCompleteness(Todo item){
-    item.complete = !item.complete;
   }
 }
+
+class ItemListView extends StatelessWidget {
+  final List<Todo> items;
+  final Function(Todo) goToEditItemView;
+
+  const ItemListView({Key key,
+    this.items,
+    this.goToEditItemView,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    if(items.isNotEmpty) {
+      return ListView.builder(
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          return TodoItem(
+            item: items[index],
+            onTap: context
+                .read(todoListProvider)
+                .updateTodoCompleteness,
+            onLongPress: goToEditItemView,
+            onDismissed: context
+                .read(todoListProvider)
+                .removeTodo,
+          );
+        },
+      );
+    } else{
+      return Center(
+        child: Text('No items'),
+      );
+    }
+  }
+}
+
 
 class TodoItem extends StatelessWidget {
   final Todo item;
@@ -135,12 +171,11 @@ class TodoItem extends StatelessWidget {
   final Function(Todo) onLongPress;
   final Function(Todo) onDismissed;
 
-  TodoItem({
-    @required this.item,
-    @required this.onTap,
-    @required this.onDismissed,
-    @required this.onLongPress
-  });
+  TodoItem(
+      {@required this.item,
+      @required this.onTap,
+      @required this.onDismissed,
+      @required this.onLongPress});
 
   @override
   Widget build(BuildContext context) {
@@ -150,20 +185,21 @@ class TodoItem extends StatelessWidget {
       background: Container(
         padding: EdgeInsets.only(left: 12),
         color: Colors.red,
-        child: Icon(Icons.delete, color: Colors.white,),
+        child: Icon(
+          Icons.delete,
+          color: Colors.white,
+        ),
         alignment: Alignment.centerLeft,
       ),
       onDismissed: (direction) => onDismissed(item),
       child: ListTile(
-        title: Text(item.description,
-          style: TextStyle(decoration: item.complete
-              ? TextDecoration.lineThrough
-              : null),
+        title: Text(
+          item.description,
+          style: TextStyle(
+              decoration: item.complete ? TextDecoration.lineThrough : null),
         ),
-        trailing: Icon(item.complete
-            ? Icons.check_box
-            : Icons.check_box_outline_blank
-        ),
+        trailing: Icon(
+            item.complete ? Icons.check_box : Icons.check_box_outline_blank),
         onTap: () => onTap(item),
         onLongPress: () => onLongPress(item),
       ),
