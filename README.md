@@ -19,3 +19,5 @@ Branch with [ScopedModel](https://pub.dev/packages/scoped_model) package:
 ## Use
 Make sure you run `flutter get` after swapping branches, to update the different state management packages.
 
+---
+Testing GitHub Websocket on Zulip
